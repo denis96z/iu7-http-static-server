@@ -1,5 +1,6 @@
 package main
 
 func main() {
-	// TODO
+	server := NewHttpServer()
+	server.Start()
 }
