@@ -13,11 +13,19 @@ branches:
 
 os: linux
 dist: trusty
-sudo: required
+sudo: enabled
 
 language: go
 go:
   - "1.10"
+  
+install: true
 
 script:
-  - go test -v ./static-server/...
+  - cd ./static-server
+  - go build
+  - go vet .
+  - go test -coverprofile=coverage.txt -covermode=atomic
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
