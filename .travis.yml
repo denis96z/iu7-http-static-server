@@ -1,0 +1,24 @@
+notifications:
+  email:
+    recipients:
+      - zinoviev.denis@yandex.ru
+      - nphoxconnect@gmail.com
+  on_success: change
+  on_failure: change
+
+branches:
+  only:
+    - master
+    - develop
+
+os: linux
+dist: trusty
+sudo: required
+
+language: go
+  go:
+    - "1.10"
+
+script:
+  - cd static-server
+  - go build *.go
