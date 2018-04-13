@@ -16,9 +16,8 @@ dist: trusty
 sudo: required
 
 language: go
-  go:
-    - "1.10"
+go:
+  - "1.10"
 
 script:
-  - cd static-server
-  - go build *.go
+  - go test -v ./static-server/...
