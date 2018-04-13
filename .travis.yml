@@ -15,11 +15,9 @@ os: linux
 dist: trusty
 sudo: required
 
-
 language: go
   go:
     - "1.10"
-
 
 script:
   - cd static-server
