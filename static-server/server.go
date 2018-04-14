@@ -3,22 +3,27 @@ package main
 import (
 	"net"
 	"log"
+	"github.com/shettyh/threadpool"
 )
 
 type httpServer struct {
 	listener net.Listener
+	handlerThreadPool threadpool.ThreadPool
 	handlerLoop func()
 }
 
 func NewHttpServer() *httpServer {
 	server := &httpServer{}
+	server.handlerThreadPool = *threadpool.NewThreadPool(10, 1000)
 	server.handlerLoop = func() {
 		for {
 			conn, err := server.listener.Accept()
 			if err != nil {
 				log.Fatal()
 			}
-			handleConnection(conn)
+			server.handlerThreadPool.Execute(NewThreadTask(func() {
+				handleConnection(conn)
+			}))
 		}
 	}
 	return server
