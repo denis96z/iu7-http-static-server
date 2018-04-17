@@ -3,6 +3,7 @@ package main
 import (
 	"io/ioutil"
 	"errors"
+	"unicode"
 )
 
 type FileReader struct {
@@ -26,6 +27,16 @@ func (reader *FileReader) ReadAllBytes(path string) ([]byte, error) {
 }
 
 func isValidPath(path string) bool {
-	//TODO
+	cPrev := '\n'
+	for _, c := range path {
+		if cPrev == '/' && c == '/' {
+			return false
+		}
+		if !unicode.IsLetter(c) && !unicode.IsDigit(c) &&
+			c != '/' && c != '.' {
+			return false
+		}
+		cPrev = c
+	}
 	return true
 }
