@@ -1,0 +1,8 @@
+{
+  "Host": "127.0.0.1",
+  "Port": 3000,
+  "RootDirectory": ".",
+  "MaxConnections": 3000,
+  "MaxQueue": 100,
+  "MaxSizeFile": 1024
+}
