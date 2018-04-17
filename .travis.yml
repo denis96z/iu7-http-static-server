@@ -23,6 +23,7 @@ install: true
 
 script:
   - cd ./static-server
+  - go get -d ./...
   - go build
   - go vet .
   - go test -coverprofile=coverage.txt -covermode=atomic
