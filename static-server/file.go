@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"errors"
 	"unicode"
+	"path/filepath"
 )
 
 type FileReader struct {
@@ -39,4 +40,21 @@ func isValidPath(path string) bool {
 		cPrev = c
 	}
 	return true
+}
+
+func GetContentType(path string) string {
+	ct := ""
+	switch filepath.Ext(path) {
+	case ".html":
+		ct = "text/html"
+	case ".css":
+		ct = "text/css"
+	case ".js":
+		ct = "text/javascript"
+	case ".xml":
+		ct = "text/xml"
+	case ".json":
+		ct = "application/json"
+	}
+	return ct
 }
