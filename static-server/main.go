@@ -16,7 +16,7 @@ func main() {
 		fmt.Println("failed to parse config file...")
 		return
 	}
-	if server := NewHttpServer(config.RootDir,
+	if server := NewHttpServer(-1, config.RootDir,
 			config.MaxQueueLen, config.MaxConn);
 			server != nil {
 		if server.Start(config.Host, config.Port) != nil {

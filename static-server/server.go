@@ -16,7 +16,7 @@ type httpServer struct {
 	fileReader FileReader
 }
 
-func NewHttpServer(root string, maxQueue int, maxConn int) *httpServer {
+func NewHttpServer(numRequests int, root string, maxQueue int, maxConn int) *httpServer {
 	server := &httpServer{}
 
 	if maxQueue < 1 || maxConn < 1 {
@@ -29,15 +29,25 @@ func NewHttpServer(root string, maxQueue int, maxConn int) *httpServer {
 		return nil
 	}
 
+	loopFunc := func () {
+		conn, err := server.listener.Accept()
+		if err != nil {
+			log.Fatal()
+		}
+		server.handlerThreadPool.Execute(NewThreadTask(func() {
+			handleConnection(conn, server.fileReader)
+		}))
+	}
+
 	server.handlerLoop = func() {
-		for {
-			conn, err := server.listener.Accept()
-			if err != nil {
-				log.Fatal()
+		if numRequests < 0 {
+			for {
+				loopFunc()
 			}
-			server.handlerThreadPool.Execute(NewThreadTask(func() {
-				handleConnection(conn, server.fileReader)
-			}))
+		} else {
+			for i := 0; i < numRequests; i++ {
+				loopFunc()
+			}
 		}
 	}
 
@@ -62,54 +72,72 @@ func (server *httpServer) Start(host string, port int) error {
 }
 
 const(
+	OkCode = 200
 	Ok = "HTTP/1.1 200 OK\r\n"
+
+	NotImplementedCode = 501
 	NotImplemented = "HTTP/1.1 501 Not Implemented\r\n"
+
+	BadRequestCode = 400
 	BadRequest = "HTTP/1.1 400 Bad Request\r\n"
+
+	NotFoundCode = 404
 	NotFound = "HTTP/1.1 404 Not Found\r\n"
 )
 
 func handleConnection(conn net.Conn, reader FileReader) {
 	defer conn.Close()
-
 	scanner := bufio.NewScanner(conn)
 	if scanner.Scan() {
-		requestParts := strings.Split(scanner.Text(), " ")
-		if len(requestParts) < 3 {
-			conn.Write([]byte(BadRequest))
-			return
-		}
-
-		if requestParts[0] != "GET" {
-			conn.Write([]byte(NotImplemented))
-			return
-		}
-		if requestParts[2] != "HTTP/1.1" {
-			conn.Write([]byte(BadRequest))
-			return
-		}
-
-		path := requestParts[1]
-		data, err := reader.ReadAllBytes(path)
-		if err != nil {
-			if err == PathError {
-				conn.Write([]byte(BadRequest))
-				return
-			} else {
-				conn.Write([]byte(NotFound))
-				return
+		code, headers, body := handleRequest(scanner.Text(), reader)
+		switch code {
+		case OkCode:
+			conn.Write([]byte(Ok))
+			for _, h := range headers {
+				conn.Write([]byte(h + "\r\n"))
 			}
+			conn.Write([]byte("\r\n"))
+			conn.Write(body)
+		case BadRequestCode:
+			conn.Write([]byte(BadRequest))
+		case NotFoundCode:
+			conn.Write([]byte(NotFound))
+		case NotImplementedCode:
+			conn.Write([]byte(NotImplemented))
 		}
-
-		conn.Write([]byte(Ok))
-
-		conn.Write([]byte("Connection: close\r\n"))
-		conn.Write([]byte("Server: iu7-http-static-server\r\n"))
-		if contType := GetContentType(path); contType != "" {
-			conn.Write([]byte("Content-Type: " + contType + "\r\n"))
-		}
-		conn.Write([]byte("Content-Length: " + strconv.Itoa(len(data)) + "\r\n"))
-		conn.Write([]byte("\r\n"))
-
-		conn.Write(data)
 	}
+}
+
+func handleRequest(req string, reader FileReader) (int, []string, []byte) {
+	requestParts := strings.Split(req, " ")
+	if len(requestParts) < 3 {
+		return BadRequestCode, nil, nil
+	}
+
+	if requestParts[0] != "GET" {
+		return NotImplementedCode, nil, nil
+	}
+	if requestParts[2] != "HTTP/1.1" {
+		return BadRequestCode, nil, nil
+	}
+
+	path := requestParts[1]
+	data, err := reader.ReadAllBytes(path)
+	if err != nil {
+		if err == PathError {
+			return BadRequestCode, nil, nil
+		} else {
+			return NotFoundCode, nil, nil
+		}
+	}
+
+	var headers []string
+	headers = append(headers, "Connection: close")
+	headers = append(headers, "Server: iu7-http-static-server")
+	if contType := GetContentType(path); contType != "" {
+		headers = append(headers, "Content-Type: " + contType + "")
+	}
+	headers = append(headers, "Content-Length: " + strconv.Itoa(len(data)))
+
+	return OkCode, headers, data
 }
