@@ -62,10 +62,10 @@ func (server *httpServer) Start(host string, port int) error {
 }
 
 const(
-	Ok = "HTTP/1.1 200 OK\n\r\n\r"
-	NotImplemented = "HTTP/1.1 501 Not Implemented\n\r"
-	BadRequest = "HTTP/1.1 400 Bad Request\n\r"
-	NotFound = "HTTP/1.1 404 Not Found\n\r"
+	Ok = "HTTP/1.1 200 OK\r\n"
+	NotImplemented = "HTTP/1.1 501 Not Implemented\r\n"
+	BadRequest = "HTTP/1.1 400 Bad Request\r\n"
+	NotFound = "HTTP/1.1 404 Not Found\r\n"
 )
 
 func handleConnection(conn net.Conn, reader FileReader) {
@@ -101,6 +101,15 @@ func handleConnection(conn net.Conn, reader FileReader) {
 		}
 
 		conn.Write([]byte(Ok))
+
+		conn.Write([]byte("Connection: close\r\n"))
+		conn.Write([]byte("Server: iu7-http-static-server\r\n"))
+		if contType := GetContentType(path); contType != "" {
+			conn.Write([]byte("Content-Type: " + contType + "\r\n"))
+		}
+		conn.Write([]byte("Content-Length: " + strconv.Itoa(len(data)) + "\r\n"))
+		conn.Write([]byte("\r\n"))
+
 		conn.Write(data)
 	}
 }
