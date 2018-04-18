@@ -6,6 +6,7 @@ import (
 	"github.com/shettyh/threadpool"
 	"bufio"
 	"strings"
+	"strconv"
 )
 
 type httpServer struct {
@@ -15,10 +16,14 @@ type httpServer struct {
 	fileReader FileReader
 }
 
-func NewHttpServer() *httpServer {
+func NewHttpServer(root string, maxQueue int, maxConn int) *httpServer {
 	server := &httpServer{}
 
-	if thPool := threadpool.NewThreadPool(10, 1000); thPool != nil {
+	if maxQueue < 1 || maxConn < 1 {
+		return nil
+	}
+
+	if thPool := threadpool.NewThreadPool(maxConn, int64(maxQueue)); thPool != nil {
 		server.handlerThreadPool = *thPool
 	} else {
 		return nil
@@ -36,8 +41,8 @@ func NewHttpServer() *httpServer {
 		}
 	}
 
-	if fileReader := NewFileReader("."); fileReader != nil {
-		server.fileReader = *NewFileReader(".")
+	if fileReader := NewFileReader(root); fileReader != nil {
+		server.fileReader = *fileReader
 	} else {
 		return nil
 	}
@@ -45,9 +50,9 @@ func NewHttpServer() *httpServer {
 	return server
 }
 
-func (server *httpServer) Start() error {
+func (server *httpServer) Start(host string, port int) error {
 	var err error
-	addr := "127.0.0.1:3000"
+	addr := host + ":" + strconv.Itoa(port)
 	server.listener, err = net.Listen("tcp", addr)
 	if err != nil {
 		return err
