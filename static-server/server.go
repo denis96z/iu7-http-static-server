@@ -4,6 +4,8 @@ import (
 	"net"
 	"log"
 	"github.com/shettyh/threadpool"
+	"bufio"
+	"strings"
 )
 
 type httpServer struct {
@@ -40,7 +42,28 @@ func (server *httpServer) Start() error {
 	return nil
 }
 
+const(
+	NotImplemented = "HTTP/1.1 501 Not Implemented\n\r"
+	BadRequest = "HTTP/1.1 400 Bad Request\n\r"
+	Ok = "HTTP/1.1 200 OK\n\r\n\r"
+)
+
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
-	conn.Write([]byte("HTTP/1.1 200 OK\n\r\n\r"))
+
+	scanner := bufio.NewScanner(conn)
+	if scanner.Scan() {
+		requestParts := strings.Split(scanner.Text(), " ")
+		if  requestParts[0] != "GET" {
+			conn.Write([]byte(NotImplemented))
+			return
+		}
+
+		if requestParts[2] != "HTTP/1.1" {
+			conn.Write([]byte(BadRequest))
+			return
+		}
+
+		conn.Write([]byte(Ok))
+	}
 }
