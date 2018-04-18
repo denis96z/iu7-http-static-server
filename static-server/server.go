@@ -12,11 +12,18 @@ type httpServer struct {
 	listener net.Listener
 	handlerThreadPool threadpool.ThreadPool
 	handlerLoop func()
+	fileReader FileReader
 }
 
 func NewHttpServer() *httpServer {
 	server := &httpServer{}
-	server.handlerThreadPool = *threadpool.NewThreadPool(10, 1000)
+
+	if thPool := threadpool.NewThreadPool(10, 1000); thPool != nil {
+		server.handlerThreadPool = *thPool
+	} else {
+		return nil
+	}
+
 	server.handlerLoop = func() {
 		for {
 			conn, err := server.listener.Accept()
@@ -24,10 +31,17 @@ func NewHttpServer() *httpServer {
 				log.Fatal()
 			}
 			server.handlerThreadPool.Execute(NewThreadTask(func() {
-				handleConnection(conn)
+				handleConnection(conn, server.fileReader)
 			}))
 		}
 	}
+
+	if fileReader := NewFileReader("."); fileReader != nil {
+		server.fileReader = *NewFileReader(".")
+	} else {
+		return nil
+	}
+
 	return server
 }
 
@@ -43,27 +57,45 @@ func (server *httpServer) Start() error {
 }
 
 const(
+	Ok = "HTTP/1.1 200 OK\n\r\n\r"
 	NotImplemented = "HTTP/1.1 501 Not Implemented\n\r"
 	BadRequest = "HTTP/1.1 400 Bad Request\n\r"
-	Ok = "HTTP/1.1 200 OK\n\r\n\r"
+	NotFound = "HTTP/1.1 404 Not Found\n\r"
 )
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, reader FileReader) {
 	defer conn.Close()
 
 	scanner := bufio.NewScanner(conn)
 	if scanner.Scan() {
 		requestParts := strings.Split(scanner.Text(), " ")
-		if  requestParts[0] != "GET" {
-			conn.Write([]byte(NotImplemented))
+		if len(requestParts) < 3 {
+			conn.Write([]byte(BadRequest))
 			return
 		}
 
+		if requestParts[0] != "GET" {
+			conn.Write([]byte(NotImplemented))
+			return
+		}
 		if requestParts[2] != "HTTP/1.1" {
 			conn.Write([]byte(BadRequest))
 			return
 		}
 
+		path := requestParts[1]
+		data, err := reader.ReadAllBytes(path)
+		if err != nil {
+			if err == PathError {
+				conn.Write([]byte(BadRequest))
+				return
+			} else {
+				conn.Write([]byte(NotFound))
+				return
+			}
+		}
+
 		conn.Write([]byte(Ok))
+		conn.Write(data)
 	}
 }

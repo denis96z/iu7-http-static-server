@@ -1,6 +1,13 @@
 package main
 
+import "fmt"
+
 func main() {
-	server := NewHttpServer()
-	server.Start()
+	if server := NewHttpServer(); server != nil {
+		if server.Start() != nil {
+			fmt.Println("failed to start server...")
+		}
+	} else {
+		fmt.Println("invalid configuration...")
+	}
 }
