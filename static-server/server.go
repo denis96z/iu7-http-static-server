@@ -9,6 +9,7 @@ import (
 	"strconv"
 )
 
+// Сервер.
 type httpServer struct {
 	listener net.Listener
 	handlerThreadPool threadpool.ThreadPool
@@ -16,6 +17,7 @@ type httpServer struct {
 	fileReader FileReader
 }
 
+// Создает сервер с указанными параметрами.
 func NewHttpServer(numRequests int, root string, maxQueue int, maxConn int) *httpServer {
 	server := &httpServer{}
 
@@ -60,6 +62,7 @@ func NewHttpServer(numRequests int, root string, maxQueue int, maxConn int) *htt
 	return server
 }
 
+// Используется для начала принятия соединений на сервере.
 func (server *httpServer) Start(host string, port int) error {
 	var err error
 	addr := host + ":" + strconv.Itoa(port)
@@ -71,6 +74,7 @@ func (server *httpServer) Start(host string, port int) error {
 	return nil
 }
 
+// Коды состояний HTTP.
 const(
 	OkCode = 200
 	Ok = "HTTP/1.1 200 OK\r\n"
@@ -85,6 +89,7 @@ const(
 	NotFound = "HTTP/1.1 404 Not Found\r\n"
 )
 
+// Обрабатывает соединения.
 func handleConnection(conn net.Conn, reader FileReader) {
 	defer conn.Close()
 	scanner := bufio.NewScanner(conn)
@@ -108,6 +113,7 @@ func handleConnection(conn net.Conn, reader FileReader) {
 	}
 }
 
+// Обрабатывает строку запроса HTTP.
 func handleRequest(req string, reader FileReader) (int, []string, []byte) {
 	requestParts := strings.Split(req, " ")
 	if len(requestParts) < 3 {

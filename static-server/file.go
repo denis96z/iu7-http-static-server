@@ -7,18 +7,22 @@ import (
 	"path/filepath"
 )
 
+// Менеджер чтения файла.
 type FileReader struct {
 	baseRoot string
 }
 
 var (
+	// Ошибка в имени файла.
 	PathError = errors.New("invalid path")
 )
 
+// Создает менеджер чтения файла.
 func NewFileReader(root string) *FileReader {
 	return &FileReader{root}
 }
 
+// Считывает данные из файла в буфер.
 func (reader *FileReader) ReadAllBytes(path string) ([]byte, error) {
 	fullPath := reader.baseRoot + path
 	if isValidPath(fullPath) {
@@ -27,6 +31,7 @@ func (reader *FileReader) ReadAllBytes(path string) ([]byte, error) {
 	return nil, PathError
 }
 
+// Проверяет корретность пути в файловой системе.
 func isValidPath(path string) bool {
 	cPrev := '\n'
 	for _, c := range path {
@@ -42,6 +47,9 @@ func isValidPath(path string) bool {
 	return true
 }
 
+// Возвращает тип контента в зависимости от
+// расширения файла. Для неизвестного расширения
+// возвращает пустую строку.
 func GetContentType(path string) string {
 	ct := ""
 	switch filepath.Ext(path) {

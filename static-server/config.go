@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 )
 
+// Параметры сервера.
 type ServerConfig struct {
 	Host string 	`json:"Host"`
 	Port int 		`json:"Port"`
@@ -14,6 +15,7 @@ type ServerConfig struct {
 	MaxFileSize int `json:"MaxSizeFile"`
 }
 
+// Считывает параметры сервера из файла.
 func (config *ServerConfig) FromFile(path string) error {
 	buffer, err := ioutil.ReadFile(path)
 	if err != nil {
